@@ -92,8 +92,8 @@ SECTIONS
   {
     _rodata_start = ABSOLUTE(.);
     *(.sdk.version)
-    *(.rodata)
-    *(.rodata.*)
+/*    *(.rodata)
+    *(.rodata.*)*/
     *(.gnu.linkonce.r.*)
     *(.rodata1)
     __XT_EXCEPTION_TABLE__ = ABSOLUTE(.);
@@ -121,8 +121,8 @@ SECTIONS
     *(.gnu.version_d)
     . = ALIGN(4);		/* this table MUST be 4-byte aligned */
     _bss_table_start = ABSOLUTE(.);
-    LONG(_bss_start)
-    LONG(_bss_end)
+/*    LONG(_bss_start)
+    LONG(_bss_end)*/
     _bss_table_end = ABSOLUTE(.);
     _rodata_end = ABSOLUTE(.);
   } >dram0_0_seg :dram0_0_phdr
@@ -196,6 +196,11 @@ SECTIONS
     *(.fini.literal)
     *(.fini)
     *(.gnu.version)
+
+    /* Store strings, etc. in the iRAM alongside the code. */
+    *(.rodata)
+    *(.rodata.*)
+
     _text_end = ABSOLUTE(.);
     _etext = .;
   } >iram1_0_seg :iram1_0_phdr
@@ -211,4 +216,4 @@ SECTIONS
 }
 
 /* get ROM code address */
-INCLUDE "../ld/eagle.rom.addr.v6.ld"
+INCLUDE "eagle.rom.addr.v6.ld"
