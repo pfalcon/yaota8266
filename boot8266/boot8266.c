@@ -26,10 +26,21 @@
 #include <string.h>
 
 #include "ets_sys.h"
+#include "gpio.h"
+
+#define MAIN_APP_OFFSET 0x3c000
 
 uint32_t SPIRead(uint32_t offset, void *buf, uint32_t len);
 uint32_t SPIWrite(uint32_t offset, const void *buf, uint32_t len);
 void _printf(const char *, ...);
+
+#define CPU_TICKS_PER_MS 80000
+
+__attribute__((always_inline)) static inline uint32_t ticks_cpu(void) {
+  uint32_t ccount;
+  __asm__ __volatile__("rsr %0,ccount":"=a" (ccount));
+  return ccount;
+}
 
 struct flash_header {
     uint8_t sig;
@@ -44,12 +55,51 @@ struct sect_header {
     uint32_t size;
 };
 
+// Return true if OTA should start
+bool check_buttons(void)
+{
+    gpio_init();
+
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+    PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO0_U);
+
+    uint32_t gpio_ini = gpio_input_get();
+    _printf("Initial GPIO state: %x, OE: %x\n", gpio_ini, *(uint32_t*)0x60000314);
+    bool ota = false;
+    int ms_delay = 3000;
+    uint32_t ticks = ticks_cpu();
+    while (ms_delay) {
+        uint32_t gpio_last = gpio_input_get();
+        if (gpio_last != gpio_ini) {
+            _printf("GPIO changed: %x\n", gpio_last);
+            ota = true;
+            break;
+        }
+        if (ticks_cpu() - ticks > CPU_TICKS_PER_MS) {
+            ms_delay--;
+            ticks += CPU_TICKS_PER_MS;
+        }
+        //system_soft_wdt_feed();
+    }
+
+    return ota;
+}
+
 void start()
 {
+    uint32_t offset;
     _printf("boot8266\n");
     memset((void*)0x3ffe8000, 0, 0x3fffc000 - 0x3ffe8000);
 
-    uint32_t offset = 0x1000;
+    bool ota = check_buttons();
+
+    if (ota) {
+        _printf("Running OTA\n");
+        offset = 0x1000;
+    } else {
+        _printf("Running app\n");
+        offset = MAIN_APP_OFFSET;
+    }
 
     union {
         struct flash_header flash;
