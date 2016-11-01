@@ -27,6 +27,7 @@
 
 #include "ets_sys.h"
 #include "gpio.h"
+#include "etshal.h"
 
 #define MAIN_APP_OFFSET 0x3c000
 
@@ -85,6 +86,43 @@ bool check_buttons(void)
     return ota;
 }
 
+extern char _bss_end;
+
+bool check_main_app(void)
+{
+    //_printf("check_main_app\n");
+    MD5_CTX ctx;
+    MD5Init(&ctx);
+
+    uint32_t off = MAIN_APP_OFFSET;
+    uint32_t sz = 0;
+    SPIRead(MAIN_APP_OFFSET + 0x8ffc, &sz, sizeof(sz));
+    if (sz > 800000) {
+        _printf("Invalid main app size\n");
+        return false;
+    }
+
+    while (sz != 0) {
+        int chunk_sz = sz > 4096 ? 4096 : sz;
+        SPIRead(off, &_bss_end, chunk_sz);
+        if (off == MAIN_APP_OFFSET) {
+            // MicroPython's makeimg.py skips first 4 bytes
+            MD5Update(&ctx, &_bss_end + 4, chunk_sz - 4);
+        } else {
+            MD5Update(&ctx, &_bss_end, chunk_sz);
+        }
+        sz -= chunk_sz;
+        off += chunk_sz;
+    }
+
+    unsigned char digest1[16];
+    SPIRead(off, digest1, sizeof(digest1));
+    unsigned char digest2[16];
+    MD5Final(digest2, &ctx);
+
+    return memcmp(digest1, digest2, sizeof(digest1)) == 0;
+}
+
 void start()
 {
     uint32_t offset;
@@ -92,6 +130,12 @@ void start()
     memset((void*)0x3ffe8000, 0, 0x3fffc000 - 0x3ffe8000);
 
     bool ota = check_buttons();
+
+    if (!ota) {
+        if (!check_main_app()) {
+            ota = true;
+        }
+    }
 
     if (ota) {
         _printf("Running OTA\n");
