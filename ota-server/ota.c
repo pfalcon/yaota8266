@@ -33,6 +33,12 @@
 #include "../boot8266/etshal.h"
 #include "config.h"
 
+#ifndef OTA_START
+// Default start of OTA region == size of boot8266 + ota-server, aligned
+// (size of yaota8266.bin as produced by the top-lebel Makefile).
+#define OTA_START 0x3c000
+#endif
+
 #define CHECK(v) if (v != ERR_OK) printf(#v ": err\n")
 
 struct pkt_seq {
