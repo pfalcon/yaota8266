@@ -35,6 +35,12 @@ def add_digest(pkt):
     return struct.pack("<I", last_seq) + pkt + sig
 
 
+def make_pkt(offset, data):
+    pkt = struct.pack("<HHI", 0, len(data), offset) + data
+    pkt = add_digest(pkt)
+    return pkt
+
+
 def decode_pkt(pkt):
     global last_aes_key
     aes = AES.new(last_aes_key, AES.MODE_CBC, AES_IV)
@@ -53,8 +59,7 @@ def live_ota():
             chunk = f.read(BLK_SIZE)
             if not chunk:
                 break
-            pkt = struct.pack("<HHI", 0, len(chunk), offset) + chunk
-            pkt = add_digest(pkt)
+            pkt = make_pkt(offset, chunk)
     #        print("pkt:", pkt)
             while 1:
                 try:
@@ -87,6 +92,48 @@ def live_ota():
         print("Done, rexmits: %d" % rexmit)
 
 
+def make_ota():
+
+    def hash_write(data):
+        hasher.update(data)
+        f_out.write(data)
+
+    offset = 0
+    with open(args.file, "rb") as f_in, open(args.file + ".ota", "wb") as f_out:
+        hasher = hashlib.sha1()
+        hash_write(b"yaota8266\x01")
+        while True:
+            chunk = f_in.read(BLK_SIZE)
+            if not chunk:
+                break
+            pkt = make_pkt(offset, chunk)
+            hash_write(struct.pack("<H", len(pkt)))
+            hash_write(pkt)
+            offset += len(chunk)
+        f_out.write(struct.pack("<H", 0))
+        f_out.write(hasher.digest())
+
+
+def validate_ota(fname):
+    with open(fname, "rb") as f_in:
+        hasher = hashlib.sha1()
+        sig = f_in.read(10)
+        if sig != b"yaota8266\x01":
+            cmd_parser.error("Invalid OTA file signature")
+        hasher.update(sig)
+        while True:
+            data = f_in.read(2)
+            sz = struct.unpack("<H", data)[0]
+            if not sz:
+                break
+            hasher.update(data)
+            data = f_in.read(sz)
+            hasher.update(data)
+        hash = f_in.read(20)
+        if hash != hasher.digest():
+            cmd_parser.error("Invalid OTA file checksum, file corrupted")
+
+
 cmd_parser = argparse.ArgumentParser(description="yaota8266 (yet another esp8266 OTA) client")
 cmd_parser.add_argument("command", help="ota/sign/live-ota")
 cmd_parser.add_argument("file", help="file to process")
@@ -98,5 +145,9 @@ if args.command in ("sign", "live-ota"):
 
 if args.command == "live-ota":
     live_ota()
+elif args.command == "sign":
+    make_ota()
+elif args.command == "ota":
+    validate_ota(args.file)
 else:
     cmd_parser.error("Unknown command")
