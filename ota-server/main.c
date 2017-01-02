@@ -30,11 +30,14 @@
 #include "user_interface.h"
 #include "mem.h"
 #include "../boot8266/etshal.h"
+#include "../config.h"
 
 void ota_start(void);
 
 void init_done(void) {
-    uart_div_modify(0, UART_CLK_FREQ / 115200);
+#if BAUD_RATE
+    uart_div_modify(0, UART_CLK_FREQ / BAUD_RATE);
+#endif
     printf("\nStarting OTA server\n");
     ota_start();
 }

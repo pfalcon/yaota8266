@@ -135,11 +135,13 @@ void uart_flush(uint8 uart) {
 
 void start()
 {
+#if BAUD_RATE
     uart_flush(UART0);
     // At this point, hardware doesn't yet know that it runs with 26MHz
     // crystal oscillator instead of "default" 40MHz, so adjust baud rate
     // accordingly.
-    uart_div_modify(UART0, UART_CLK_FREQ / (115200 * 40 / 26));
+    uart_div_modify(UART0, UART_CLK_FREQ / (BAUD_RATE * 40 / 26));
+#endif
 
     memset((void*)0x3ffe8000, 0, 0x3fffc000 - 0x3ffe8000);
 
