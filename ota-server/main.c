@@ -34,7 +34,8 @@
 void ota_start(void);
 
 void init_done(void) {
-    printf("Running OTA\n");
+    uart_div_modify(0, UART_CLK_FREQ / 115200);
+    printf("\nStarting OTA server\n");
     ota_start();
 }
 
