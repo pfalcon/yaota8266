@@ -6,8 +6,10 @@
 // private key for the public key specified here), but I will own
 // your system (because I have it).
 
-// You can override OTA_START here
-//#define OTA_START 0x3c000
+// Offset of the main application (one which will undergo OTA update)
+// Default start of OTA region == size of boot8266 + ota-server, aligned
+// (size of yaota8266.bin as produced by the top-level Makefile).
+#define MAIN_APP_OFFSET 0x3c000
 
 // Modulus of RSA public key used to verify OTA signature
 // (size is 512 bits, exponent is hardcoded at 3).

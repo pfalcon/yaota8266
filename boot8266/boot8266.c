@@ -29,8 +29,7 @@
 #include "gpio.h"
 #include "uart_register.h"
 #include "etshal.h"
-
-#define MAIN_APP_OFFSET 0x3c000
+#include "../config.h"
 
 uint32_t SPIRead(uint32_t offset, void *buf, uint32_t len);
 uint32_t SPIWrite(uint32_t offset, const void *buf, uint32_t len);
