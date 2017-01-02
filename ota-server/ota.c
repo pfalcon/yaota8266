@@ -48,6 +48,7 @@ struct pkt_header {
     char data[0];
 } __attribute__((packed));
 
+static uint8_t MOD[] = MODULUS;
 #define RSA_BLK_SIZE (sizeof(MOD) - 1)
 
 static uint32_t ota_offset, ota_prev_offset = -1;
