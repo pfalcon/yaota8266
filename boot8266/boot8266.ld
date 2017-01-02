@@ -203,7 +203,11 @@ SECTIONS
 
     _text_end = ABSOLUTE(.);
     _etext = .;
-  } >iram1_0_seg :iram1_0_phdr
+
+    . = (. & ~ 0xfff) + 0xf00 - 0x10 /*size of boot header*/;
+    *(.param)
+
+  } >iram1_0_seg :iram1_0_phdr =0xff
 
   .lit4 : ALIGN(4)
   {

@@ -38,6 +38,8 @@ void _printf(const char *, ...);
 #define CPU_TICKS_PER_MS 80000
 #define UART0 0
 
+#define CONFIG_PARAM __attribute__((section(".param")))
+
 __attribute__((always_inline)) static inline uint32_t ticks_cpu(void) {
   uint32_t ccount;
   __asm__ __volatile__("rsr %0,ccount":"=a" (ccount));
