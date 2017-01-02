@@ -40,6 +40,8 @@ void _printf(const char *, ...);
 
 #define CONFIG_PARAM __attribute__((section(".param")))
 
+CONFIG_PARAM uint32_t gpio_mask = GPIO_MASK;
+
 __attribute__((always_inline)) static inline uint32_t ticks_cpu(void) {
   uint32_t ccount;
   __asm__ __volatile__("rsr %0,ccount":"=a" (ccount));
@@ -69,11 +71,13 @@ bool check_buttons(void)
 
     uint32_t gpio_ini = gpio_input_get();
     _printf("Initial GPIO state: %x, OE: %x\n", gpio_ini, *(uint32_t*)0x60000314);
+    gpio_ini &= gpio_mask;
+
     bool ota = false;
     int ms_delay = 3000;
     uint32_t ticks = ticks_cpu();
     while (ms_delay) {
-        uint32_t gpio_last = gpio_input_get();
+        uint32_t gpio_last = gpio_input_get() & gpio_mask;
         if (gpio_last != gpio_ini) {
             _printf("GPIO changed: %x\n", gpio_last);
             ota = true;
