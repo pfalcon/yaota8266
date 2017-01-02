@@ -120,10 +120,12 @@ static void ota_udp_incoming(void *arg, struct udp_pcb *upcb, struct pbuf *p, ip
         goto done;
     }
 
+#if 0
     AES_CTX aes_ctx;
     AES_set_key(&aes_ctx, sig_payload, AES_IV, AES_MODE_128);
     AES_convert_key(&aes_ctx);
     AES_cbc_decrypt(&aes_ctx, (uint8_t*)hdr, (uint8_t*)hdr, p->len - RSA_BLK_SIZE - 4);
+#endif
 
     printf("offset: %d len: %d\n", hdr->offset, hdr->len);
 
@@ -170,8 +172,10 @@ confirm: {
       *(uint32_t*)resp->payload = pkt->seq;
       uint8_t *encblk = (uint8_t*)resp->payload + 4;
       memcpy(encblk, hdr, sizeof(struct pkt_header));
+#if 0
       AES_set_key(&aes_ctx, sig_payload, AES_IV, AES_MODE_128);
       AES_cbc_encrypt(&aes_ctx, encblk, encblk, AES_BLK_SIZE);
+#endif
 
       CHECK(udp_sendto(upcb, resp, addr, port));
       pbuf_free(resp);
