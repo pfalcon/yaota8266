@@ -138,6 +138,10 @@ static void ota_udp_incoming(void *arg, struct udp_pcb *upcb, struct pbuf *p, ip
         write_buf();
         ota_offset = 0;
         ota_prev_offset = -1;
+
+        printf("Rebooting\n");
+        system_restart();
+
         return;
     }
 
