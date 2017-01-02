@@ -27,6 +27,7 @@
 
 #include "ets_sys.h"
 #include "gpio.h"
+#include "uart_register.h"
 #include "etshal.h"
 
 #define MAIN_APP_OFFSET 0x3c000
@@ -36,6 +37,7 @@ uint32_t SPIWrite(uint32_t offset, const void *buf, uint32_t len);
 void _printf(const char *, ...);
 
 #define CPU_TICKS_PER_MS 80000
+#define UART0 0
 
 __attribute__((always_inline)) static inline uint32_t ticks_cpu(void) {
   uint32_t ccount;
@@ -123,11 +125,26 @@ bool check_main_app(void)
     return memcmp(digest1, digest2, sizeof(digest1)) == 0;
 }
 
+void uart_flush(uint8 uart) {
+    while (true) {
+        uint32 fifo_cnt = READ_PERI_REG(UART_STATUS(uart)) & (UART_TXFIFO_CNT<<UART_TXFIFO_CNT_S);
+        if ((fifo_cnt >> UART_TXFIFO_CNT_S & UART_TXFIFO_CNT) == 0) {
+            break;
+        }
+    }
+}
+
 void start()
 {
-    uint32_t offset;
-    _printf("boot8266\n");
+    uart_flush(UART0);
+    // At this point, hardware doesn't yet know that it runs with 26MHz
+    // crystal oscillator instead of "default" 40MHz, so adjust baud rate
+    // accordingly.
+    uart_div_modify(UART0, UART_CLK_FREQ / (115200 * 40 / 26));
+
     memset((void*)0x3ffe8000, 0, 0x3fffc000 - 0x3ffe8000);
+
+    _printf("\n\nboot8266\n");
 
     bool ota = check_buttons();
 
@@ -137,6 +154,7 @@ void start()
         }
     }
 
+    uint32_t offset;
     if (ota) {
         _printf("Running OTA\n");
         offset = 0x1000;
