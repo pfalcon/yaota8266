@@ -52,16 +52,17 @@ struct pkt_header {
 static uint8_t MOD[] = MODULUS;
 #define RSA_BLK_SIZE (sizeof(MOD) - 1)
 
-static uint32_t ota_offset, ota_prev_offset = -1;
+static uint32_t ota_offset, ota_prev_offset;
+static int dup_pkt;
+static uint32_t last_pkt_time;
+static RSA_CTX *rsa_ctx = NULL;
+
 static char buf[4096];
 static int buf_sz;
-static RSA_CTX *rsa_ctx = NULL;
-static uint32_t last_pkt_time;
 
 #define AES_BLK_SIZE 16
 uint8_t AES_IV[AES_BLK_SIZE] = {0};
 
-int dup_pkt;
 
 static void buf_init(void) {
     buf_sz = 0;
@@ -87,6 +88,12 @@ void MP_FASTCODE(write_buf)(void) {
 #endif
     }
     buf_init();
+}
+
+static void session_init(void) {
+    dup_pkt = 0;
+    ota_offset = 0;
+    ota_prev_offset = -1;
 }
 
 static void ota_udp_incoming(void *arg, struct udp_pcb *upcb, struct pbuf *p, ip_addr_t *addr, u16_t port) {
@@ -133,14 +140,12 @@ static void ota_udp_incoming(void *arg, struct udp_pcb *upcb, struct pbuf *p, ip
     printf("offset: %d len: %d\n", hdr->offset, hdr->len);
 
     if (hdr->len == 0) {
-        printf("OTA finished, rexmits: %d\n", dup_pkt);
-        dup_pkt = 0;
-        pbuf_free(p);
-//        udp_remove(upcb);
         write_buf();
-        ota_offset = 0;
-        ota_prev_offset = -1;
+        printf("OTA finished, rexmits: %d\n", dup_pkt);
+        pbuf_free(p);
+        session_init();
 
+        //udp_remove(upcb);
         printf("Rebooting\n");
         system_restart();
 
@@ -200,16 +205,14 @@ void timer_handler(void *arg) {
 
     if (ota_prev_offset != -1 && system_get_time() - last_pkt_time > PKT_WAIT_MS * 1000) {
         printf("Next pkt wait timeout, restarting recv\n");
-        dup_pkt = 0;
-        ota_offset = 0;
-        ota_prev_offset = -1;
+        session_init();
     }
 
     sys_timeout(1000, timer_handler, NULL);
 }
 
 void ota_start(void) {
-    dup_pkt = 0;
+    session_init();
     buf_init();
 
     RSA_pub_key_new(&rsa_ctx, MOD, sizeof(MOD) - 1, (uint8_t*)"\x03", 1);
