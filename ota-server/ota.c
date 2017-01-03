@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include "lwip/udp.h"
+#include "lwip/timers.h"
 #include "ets_alt_task.h"
 #include "user_interface.h"
 #include "lib/axtls/crypto/crypto.h"
@@ -55,6 +56,7 @@ static uint32_t ota_offset, ota_prev_offset = -1;
 static char buf[4096];
 static int buf_sz;
 static RSA_CTX *rsa_ctx = NULL;
+static uint32_t last_pkt_time;
 
 #define AES_BLK_SIZE 16
 uint8_t AES_IV[AES_BLK_SIZE] = {0};
@@ -186,9 +188,24 @@ confirm: {
       pbuf_free(resp);
     }
 
+    last_pkt_time = system_get_time();
+
 done:
     printf("Full time: %d\n", system_get_time() - start_time);
     pbuf_free(p);
+}
+
+void timer_handler(void *arg) {
+    //printf("tick\n");
+
+    if (ota_prev_offset != -1 && system_get_time() - last_pkt_time > PKT_WAIT_MS * 1000) {
+        printf("Next pkt wait timeout, restarting recv\n");
+        dup_pkt = 0;
+        ota_offset = 0;
+        ota_prev_offset = -1;
+    }
+
+    sys_timeout(1000, timer_handler, NULL);
 }
 
 void ota_start(void) {
@@ -201,6 +218,9 @@ void ota_start(void) {
     struct udp_pcb *sock = udp_new();
     CHECK(udp_bind(sock, IP_ADDR_ANY, 8266));
     udp_recv(sock, ota_udp_incoming, NULL);
+
+    sys_timeout(1000, timer_handler, NULL);
+
     while (1) {
         ets_loop_iter();
     }
