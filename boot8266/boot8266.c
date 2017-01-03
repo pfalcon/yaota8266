@@ -41,6 +41,7 @@ void _printf(const char *, ...);
 #define CONFIG_PARAM __attribute__((section(".param")))
 
 CONFIG_PARAM uint32_t gpio_mask = GPIO_MASK;
+CONFIG_PARAM uint32_t gpio_wait_ms = GPIO_WAIT_MS;
 
 __attribute__((always_inline)) static inline uint32_t ticks_cpu(void) {
   uint32_t ccount;
@@ -74,7 +75,7 @@ bool check_buttons(void)
     gpio_ini &= gpio_mask;
 
     bool ota = false;
-    int ms_delay = 3000;
+    int ms_delay = gpio_wait_ms;
     uint32_t ticks = ticks_cpu();
     while (ms_delay) {
         uint32_t gpio_last = gpio_input_get() & gpio_mask;

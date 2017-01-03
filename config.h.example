@@ -23,3 +23,6 @@
 
 // GPIO mask. Default value filters out UART0 and QSPI for FlashROM.
 #define GPIO_MASK 0xf035
+
+// How long to wait for GPIO change to go into OTA mode.
+#define GPIO_WAIT_MS 3000
