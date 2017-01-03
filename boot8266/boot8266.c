@@ -106,7 +106,7 @@ bool check_main_app(void)
     uint32_t sz = 0;
     SPIRead(MAIN_APP_OFFSET + 0x8ffc, &sz, sizeof(sz));
     if (sz > 800000) {
-        _printf("Invalid main app size\n");
+        _printf("Invalid main app size: %u\n", sz);
         return false;
     }
 
