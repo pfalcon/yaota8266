@@ -54,6 +54,7 @@ static uint8_t MOD[] = MODULUS;
 
 static uint32_t ota_offset, ota_prev_offset;
 static int dup_pkt;
+static uint32_t session_start_time;
 static uint32_t last_pkt_time;
 static RSA_CTX *rsa_ctx = NULL;
 
@@ -94,6 +95,7 @@ static void session_init(void) {
     dup_pkt = 0;
     ota_offset = 0;
     ota_prev_offset = -1;
+    session_start_time = system_get_time();
 }
 
 static void ota_udp_incoming(void *arg, struct udp_pcb *upcb, struct pbuf *p, ip_addr_t *addr, u16_t port) {
@@ -206,6 +208,11 @@ void timer_handler(void *arg) {
     if (ota_prev_offset != -1 && system_get_time() - last_pkt_time > PKT_WAIT_MS * 1000) {
         printf("Next pkt wait timeout, restarting recv\n");
         session_init();
+    }
+
+    if (ota_prev_offset == -1 && system_get_time() - session_start_time > IDLE_REBOOT_MS * 1000) {
+        printf("OTA start timeout, rebooting\n");
+        system_restart();
     }
 
     sys_timeout(1000, timer_handler, NULL);

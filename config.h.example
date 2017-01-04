@@ -23,6 +23,10 @@
 // transfer is broken and restart reception from beginning.
 #define PKT_WAIT_MS 10000
 
+// If first OTA packet isn't received during this time, reboot. This
+// protects against being stuck in OTA mode if entered by accident.
+#define IDLE_REBOOT_MS 60000
+
 // Parameters below can be configured in flash too
 
 // GPIO mask. Default value filters out UART0 and QSPI for FlashROM.
