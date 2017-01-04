@@ -65,6 +65,11 @@ struct sect_header {
 // Return true if OTA should start
 bool check_buttons(void)
 {
+    // If gpio_mask is empty, enter OTA unconditionally.
+    if (!gpio_mask) {
+        return true;
+    }
+
     gpio_init();
 
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);

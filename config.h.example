@@ -30,6 +30,9 @@
 // Parameters below can be configured in flash too
 
 // GPIO mask. Default value filters out UART0 and QSPI for FlashROM.
+// If value is 0, then OTA is entered unconditionally. By adjusting
+// IDLE_REBOOT_MS, you can make a device spend minimal time in this
+// unconditional OTA mode.
 #define GPIO_MASK 0xf035
 
 // How long to wait for GPIO change to go into OTA mode.
