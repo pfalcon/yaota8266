@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "ets_sys.h"
+#include "user_interface.h"
 #include "gpio.h"
 #include "uart_register.h"
 #include "etshal.h"
@@ -37,6 +38,11 @@ void _printf(const char *, ...);
 
 #define CPU_TICKS_PER_MS 80000
 #define UART0 0
+#define RTCMEM_BASE 0x60001000
+#define RTCMEM_SYSTEM (RTCMEM_BASE + 0x100)
+// "reset info" prepared by vendor SDK is at the start of RTC memory
+// ref: 0x402525a7 (main_sdk_init2+0x11f)
+#define rtc_rst_info ((struct rst_info*)RTCMEM_SYSTEM)
 
 #define CONFIG_PARAM __attribute__((section(".param")))
 
@@ -147,6 +153,13 @@ void uart_flush(uint8 uart) {
 
 void start()
 {
+    uint32_t offset = MAIN_APP_OFFSET;
+
+    // If it's wake from deepsleep, boot main app ASAP
+    if (rtc_rst_info->reason == REASON_DEEP_SLEEP_AWAKE) {
+        goto boot;
+    }
+
 #if BAUD_RATE
     uart_flush(UART0);
     // At this point, hardware doesn't yet know that it runs with 26MHz
@@ -159,6 +172,9 @@ void start()
 
     _printf("\n\nboot8266\n");
 
+    _printf("HW RTC Reset reason: %d\n", rtc_get_reset_reason());
+    _printf("System reset reason: %d\n", rtc_rst_info->reason);
+
     bool ota = check_buttons();
 
     if (!ota) {
@@ -167,13 +183,11 @@ void start()
         }
     }
 
-    uint32_t offset;
     if (ota) {
         _printf("Running OTA\n");
         offset = 0x1000;
     } else {
         _printf("Running app\n");
-        offset = MAIN_APP_OFFSET;
     }
 
     union {
@@ -181,6 +195,7 @@ void start()
         struct sect_header sect;
     } hdr;
 
+boot:
     SPIRead(offset, &hdr.flash, sizeof(hdr.flash));
     offset += sizeof(hdr.flash);
 
