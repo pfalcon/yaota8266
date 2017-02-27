@@ -6,7 +6,7 @@ import time
 import hashlib
 import argparse
 
-from Crypto.Cipher import AES
+#from Crypto.Cipher import AES
 import rsa_sign
 
 
@@ -24,8 +24,8 @@ rexmit = 0
 def add_digest(pkt):
     global last_aes_key, last_seq
     aes_key = AES_KEY
-    last_aes_key = aes_key
-    aes = AES.new(aes_key, AES.MODE_CBC, AES_IV)
+    #last_aes_key = aes_key
+    #aes = AES.new(aes_key, AES.MODE_CBC, AES_IV)
     pad_len = (16 - len(pkt) % 16) % 16
     pkt += b"\0" * pad_len
     #pkt = aes.encrypt(pkt)
