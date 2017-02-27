@@ -206,6 +206,8 @@ SECTIONS
 
     . = (. & ~ 0xfff) + 0xf00 - 0x10 /*size of boot header*/;
     *(.param)
+    /* Make image exactly the sector size */
+    . = (. & ~ 0xfff) + 0xfe4;
 
   } >iram1_0_seg :iram1_0_phdr =0xff
 
