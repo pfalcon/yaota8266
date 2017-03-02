@@ -10,7 +10,11 @@ import argparse
 import rsa_sign
 
 
-BLK_SIZE = 1024
+# How many firmware data bytes are included in each packet.
+# Set a conservative default. There were issues reported that
+# UDP packet larger than 548 bytes don't get thru. Unfortunately,
+# that means that even 512 payload bytes + headers don't fit.
+BLK_SIZE = 256
 
 AES_IV = b"\0" * 16
 AES_KEY = b"\x01" * 16
