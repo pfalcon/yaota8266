@@ -1,5 +1,6 @@
 CC = xtensa-lx106-elf-gcc
 LD = xtensa-lx106-elf-ld
+AR = xtensa-lx106-elf-ar
 ESP_SDK = $(shell $(CC) -print-sysroot)/usr
 CFLAGS = -std=gnu99 -Os -I. -mtext-section-literals -mlongcalls -mforce-l32 -ffunction-sections -fdata-sections -DLWIP_OPEN_SRC -D__ets__
 LDLIBS = -L$(ESP_SDK)/lib -L. -laxtls -lmain -lnet80211 -lwpa -llwip_open -lpp -lphy -lnet80211 -lgcc
