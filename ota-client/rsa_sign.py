@@ -12,12 +12,18 @@ def load_key():
         elif l.startswith("    "):
             comps[last_comp] = comps.get(last_comp, "") + l.lstrip()
 
-    print(comps)
+    #print(comps)
     return comps
 
 
-def dump_c(comps):
-    print('mod = "%s"' % comps["modulus"][2:].replace(":", "\\x"))
+def dump_modulus(comps):
+    print('Copy&paste this RSA modulus line into your config.h:')
+    print('-'*100)
+    print('#define MODULUS "%s"' % comps["modulus"][2:].replace(":", "\\x"))
+    print('-'*100)
+
+
+def dump_exponent(comps):
     print('pe = "%s"' % comps["privateExponent"][2:].replace(":", "\\x"))
 
 

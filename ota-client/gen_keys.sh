@@ -3,3 +3,5 @@ BITS=512
 openssl genrsa -out priv.key -3 $BITS
 openssl rsa -in priv.key -pubout -out pub.key
 openssl pkey -in priv.key -text
+
+python -c "import rsa_sign; rsa_sign.dump_modulus(rsa_sign.load_key())"
