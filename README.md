@@ -1,6 +1,34 @@
 yaota8266
 =========
 
+howto
+-----
+
+generate RSA keys:
+
+```
+cd ota-client
+./gen_keys.sh
+```
+
+Display RSA modulus:
+```
+cd ota-client
+./dump_modulus.py
+```
+
+Create `config.h` e.g.:
+```
+cp config.h.example config.h
+```
+copy&paste the RSA modulus in your `config.h`
+
+Compile your `yaota8266.bin` just by calling `make`
+
+
+background information
+----------------------
+
 yaota8266 is yet another bootloader/over-the-air (OTA) update solution
 for ESP8266 WiFi SoC. Unlike many other solutions, yaota8266 does not
 require reserving FlashROM space of 2x the size of the firmware. Instead,
