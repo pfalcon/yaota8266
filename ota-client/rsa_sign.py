@@ -6,80 +6,82 @@ from pathlib import Path
 
 RSA_PRIV_KEY = 'priv.key'
 
+class RsaSign:
+    def __init__(self):
+        self.comps = self.load_key()
 
-def load_key():
-    cwd = Path(__file__).parent.resolve()
-    if not Path(cwd, RSA_PRIV_KEY).is_file():
-        raise FileNotFoundError('RSA key file not found in %s' % cwd)
+    def load_key(self):
+        cwd = Path(__file__).parent.resolve()
+        if not Path(cwd, RSA_PRIV_KEY).is_file():
+            raise FileNotFoundError('RSA key file not found in %s' % cwd)
 
-    output = subprocess.check_output(
-        ['openssl', 'pkey', '-in', RSA_PRIV_KEY, '-text'],
-        universal_newlines=True,
-        cwd=str(cwd)
-    )
-    # print(output)
+        output = subprocess.check_output(
+            ['openssl', 'pkey', '-in', RSA_PRIV_KEY, '-text'],
+            universal_newlines=True,
+            cwd=str(cwd)
+        )
+        # print(output)
 
-    comps = {}
-    last_comp = None
-    for line in output.splitlines():
-        if line[0] != ' ' and line[-1] == ':':
-            last_comp = line[:-1]
-        elif line.startswith('    '):
-            comps[last_comp] = comps.get(last_comp, "") + line.strip()
+        comps = {}
+        last_comp = None
+        for line in output.splitlines():
+            if line[0] != ' ' and line[-1] == ':':
+                last_comp = line[:-1]
+            elif line.startswith('    '):
+                comps[last_comp] = comps.get(last_comp, "") + line.strip()
 
-    # print(comps)
+        # print(comps)
 
-    assert 'modulus' in comps, f'modulus not found in: {comps!r}'
-    assert 'privateExponent' in comps, f'privateExponent not found in: {comps!r}'
+        assert 'modulus' in comps, f'modulus not found in: {comps!r}'
+        assert 'privateExponent' in comps, f'privateExponent not found in: {comps!r}'
 
-    return comps
-
-
-def dump_modulus(comps):
-    print('Copy&paste this RSA modulus line into your config.h:')
-    print('-' * 100)
-    print('#define MODULUS %s' % comps['modulus'][2:].replace(':', '\\x'))
-    print('-' * 100)
+        return comps
 
 
-def dump_exponent(comps):
-    print('pe = %s' % comps['privateExponent'][2:].replace(':', '\\x'))
+    def dump_modulus(self):
+        print('Copy&paste this RSA modulus line into your config.h:')
+        print('-' * 100)
+        print('#define MODULUS %s' % self.comps['modulus'][2:].replace(':', '\\x'))
+        print('-' * 100)
 
 
-def sign(comps, to_sign):
-    mod = comps['modulus']
-    assert mod.startswith('00:')
-    mod = mod[3:].replace(':', "")
-    BITS = len(mod) // 2 * 8
-#    print('Key bits:', BITS)
+    def dump_exponent(self):
+        print('pe = %s' % self.comps['privateExponent'][2:].replace(':', '\\x'))
 
-    mod = int.from_bytes(unhexlify(mod), 'big')
-    pe = int.from_bytes(unhexlify(comps['privateExponent'].replace(':', "")), 'big')
 
-    pad_len = BITS // 8 - len(to_sign) - 3
-#    print('Pad length:', pad_len)
-    assert pad_len >= 8
+    def sign(self, to_sign):
+        mod = self.comps['modulus']
+        assert mod.startswith('00:')
+        mod = mod[3:].replace(':', "")
+        BITS = len(mod) // 2 * 8
+    #    print('Key bits:', BITS)
 
-    buf = b'\0\x01' + (b'\xff' * pad_len) + b'\0' + to_sign
-#    print('Padded to-sign len:', len(buf))
-    val = int.from_bytes(buf, 'big')
-#    print('Padded to-sign:', val, hex(val))
+        mod = int.from_bytes(unhexlify(mod), 'big')
+        pe = int.from_bytes(unhexlify(self.comps['privateExponent'].replace(':', "")), 'big')
 
-    sig = pow(val, pe, mod)
-#    print('Sig (int):', sig, hex(sig))
-    sig_b = sig.to_bytes(BITS // 8, 'big')
-#    print(hexlify(sig_b))
-    return sig_b
+        pad_len = BITS // 8 - len(to_sign) - 3
+    #    print('Pad length:', pad_len)
+        assert pad_len >= 8
+
+        buf = b'\0\x01' + (b'\xff' * pad_len) + b'\0' + to_sign
+    #    print('Padded to-sign len:', len(buf))
+        val = int.from_bytes(buf, 'big')
+    #    print('Padded to-sign:', val, hex(val))
+
+        sig = pow(val, pe, mod)
+    #    print('Sig (int):', sig, hex(sig))
+        sig_b = sig.to_bytes(BITS // 8, 'big')
+    #    print(hexlify(sig_b))
+        return sig_b
 
 
 if __name__ == '__main__':
-    comps = load_key()
-
-    dump_modulus(comps)
+    rsa_sign = RsaSign()
+    print(rsa_sign.dump_modulus())
 
     print('\nprivateExponent:')
-    dump_exponent(comps)
+    print(rsa_sign.dump_exponent())
 
     to_sign = b'foob\0'
     print(f'\nsigned {to_sign!r}:')
-    print(sign(comps, to_sign))
+    print(rsa_sign.sign(to_sign))
