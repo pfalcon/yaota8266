@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
 import hashlib
 import socket
 import struct
@@ -20,6 +21,12 @@ AES_IV = b'\0' * 16
 AES_KEY = b'\x01' * 16
 
 SIGNED_FILE_EXTENSION = '.ota'
+
+OTA_PORT = 8266
+SOCKET_TIMEOUT = 10
+
+DNS_SERVER = '8.8.8.8'  # Google DNS Server ot get own IP
+ENCODING = 'utf-8'
 
 
 def signed_filename(fname):
@@ -59,7 +66,8 @@ def validate_ota(fname):
 
 
 class OtaClient:
-    def __init__(self):
+    def __init__(self, fname=None):
+        self.fname = fname
         self.rsa_sign = RsaSign()
 
         self.rsa_key = None
@@ -90,13 +98,14 @@ class OtaClient:
         # return aes.decrypt(pkt)
         return pkt
 
-    def send_recv(self, s, offset, pkt, data_len):
+    async def send_recv(self, reader, writer, offset, pkt, data_len):
         while True:
             try:
                 print('Sending # %d' % self.last_seq)
                 # print('send:', pkt)
-                s.send(pkt)
-                resp = s.recv(1024)
+                writer.write(pkt)
+                await writer.drain()
+                resp = await reader.read(1024)
                 # print('resp:', resp, len(resp))
                 resp_seq = struct.unpack('<I', resp[:4])[0]
                 if resp_seq != self.last_seq:
@@ -118,29 +127,26 @@ class OtaClient:
                 print('timeout')
                 self.rexmit += 1
 
-    def send_ota_end(self, s):
+    async def send_ota_end(self, writer):
         # Repeat few times to minimize chance of being lost
         for i in range(3):
             pkt = self.make_pkt(0, b'')
-            s.send(pkt)
+            writer.write(pkt)
+            await writer.drain()
             time.sleep(0.1)
 
-    def live_ota(self, address, fname):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect((address, 8266))
-        s.settimeout(0.3)
-
+    async def live_ota(self, reader, writer):
         offset = 0
-        with open(fname, 'rb') as f:
+        with open(self.fname, 'rb') as f:
             while True:
                 chunk = f.read(BLK_SIZE)
                 if not chunk:
                     break
                 pkt = self.make_pkt(offset, chunk)
-                self.send_recv(s, offset, pkt, len(chunk))
+                await self.send_recv(reader, writer, offset, pkt, len(chunk))
                 offset += len(chunk)
 
-        self.send_ota_end(s)
+        await self.send_ota_end(writer)
         print('Done, rexmits: %d' % self.rexmit)
 
     def sign(self, fname):
@@ -175,12 +181,8 @@ class OtaClient:
 
         print(f'Signed file created: {out_filename}')
 
-    def canned_ota(self, address, fname):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect((address, 8266))
-        s.settimeout(0.3)
-
-        with open(fname, 'rb') as f_in:
+    async def canned_ota(self, reader, writer):
+        with open(self.fname, 'rb') as f_in:
             # Skip signature
             f_in.read(10)
             while True:
@@ -190,16 +192,120 @@ class OtaClient:
                     break
                 data = f_in.read(sz)
                 last_seq, op, data_len, offset = struct.unpack('<IHHI', data[:12])
-                self.send_recv(s, offset, data, data_len)
+                await self.send_recv(reader, writer, offset, data, data_len)
 
         print('Done, rexmits: %d' % self.rexmit)
+
+
+def get_ip_address():
+    """
+    :return: IP address of the host running this script.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(SOCKET_TIMEOUT)
+    s.connect((DNS_SERVER, 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
+
+class CommunicationError(RuntimeError):
+    pass
+
+
+def ip_range_iterator(own_ip, exclude_own):
+    ip_prefix, own_no = own_ip.rsplit('.', 1)
+    print(f'Scan:.....: {ip_prefix}.X')
+
+    own_no = int(own_no)
+
+    for no in range(1, 255):
+        if exclude_own and no == own_no:
+            continue
+
+        yield f'{ip_prefix}.{no}'
+
+
+class OtaStreamWriter(asyncio.StreamWriter):
+    encoding = 'utf-8'
+
+    async def write_text_line(self, text):
+        self.write(b'%s\n' % text.encode('utf-8'))
+        await self.drain()
+
+    async def sendall(self, data):
+        self.write(data)
+        await self.drain()
+
+
+async def open_connection(host=None, port=None):
+    """A wrapper for create_connection() returning a (reader, writer) pair.
+
+    Similar as asyncio.open_connection() but we use own OtaStreamWriter()
+    """
+    loop = asyncio.get_event_loop()
+    reader = asyncio.StreamReader(limit=2 ** 16, loop=loop)
+    protocol = asyncio.StreamReaderProtocol(reader, loop=loop)
+    transport, _ = await loop.create_connection(lambda: protocol, host, port)
+    writer = OtaStreamWriter(transport, protocol, reader, loop)
+    return reader, writer
+
+
+class AsyncConnector:
+    """
+    Scan the own IP range and start callback if receiver found.
+    """
+    def __init__(self, callback):
+        self.callback = callback
+
+    async def port_scan_and_serve(self, port):
+        own_ip = get_ip_address()
+        print(f'Own IP....: {own_ip}')
+        ips = tuple(ip_range_iterator(own_ip, exclude_own=True))
+
+        print(f'Wait for receivers on port: {port}', end=' ', flush=True)
+        clients = []
+        while True:
+            connections = [
+                asyncio.wait_for(open_connection(ip, port), timeout=0.5)
+                for ip in ips
+            ]
+            results = await asyncio.gather(*connections, return_exceptions=True)
+            for ip, result in zip(ips, results):
+                if isinstance(result, asyncio.TimeoutError):
+                    continue
+                elif not isinstance(result, tuple):
+                    continue
+
+                reader, writer = result
+
+                print('Connected to:', ip)
+                peername = writer.get_extra_info('peername')
+                print(f'Connect to {peername[0]}:{peername[1]}')
+                try:
+                    await self.callback(reader, writer)
+                except ConnectionResetError as e:
+                    print(e)
+                    continue
+                clients.append(ip)
+
+            if clients:
+                return clients
+
+            print('.', end='', flush=True)
+            time.sleep(2)
+
+    def scan(self, port):
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(
+            self.port_scan_and_serve(port=port)
+        )
 
 
 def cli():
     cmd_parser = argparse.ArgumentParser(description='yaota8266 (yet another esp8266 OTA) client')
     cmd_parser.add_argument('command', help='ota/sign/live-ota')
     cmd_parser.add_argument('file', help='file to process')
-    cmd_parser.add_argument('-a', '--address', help='IP address of device to upgrade')
     args = cmd_parser.parse_args()
 
     if args.command == 'sign':
@@ -210,12 +316,18 @@ def cli():
     elif args.command == 'live-ota':
         # Do the OTA update for a device
         validate_ota(args.file)
-        OtaClient().live_ota(args.address, args.file)
+
+        AsyncConnector(
+            callback=OtaClient(args.file).live_ota
+        ).scan(port=OTA_PORT)
 
     elif args.command == 'ota':
         validate_ota(args.file)
-        OtaClient().canned_ota(args.address, args.file)
-        
+
+        AsyncConnector(
+            callback=OtaClient(args.file).canned_ota
+        ).scan(port=OTA_PORT)
+
     else:
         cmd_parser.error('Unknown command')
 
