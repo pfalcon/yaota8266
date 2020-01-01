@@ -102,29 +102,37 @@ class OtaClient:
         while True:
             try:
                 print('Sending # %d' % self.last_seq)
-                # print('send:', pkt)
+
+                print('send:', pkt)
                 writer.write(pkt)
                 await writer.drain()
+
+                print('wait for response...', end='')
                 resp = await reader.read(1024)
-                # print('resp:', resp, len(resp))
+                print('resp:', resp, len(resp))
+
                 resp_seq = struct.unpack('<I', resp[:4])[0]
                 if resp_seq != self.last_seq:
                     print('Unexpected seq no: %d (expected: %d)' % (resp_seq, self.last_seq))
                     continue
+
                 resp = resp[4:]
                 resp = self.decode_pkt(resp)
-                # print('decoded resp:', resp)
+                print('decoded resp:', resp)
+
                 resp_op, resp_len, resp_off = struct.unpack('<HHI', resp[:8])
                 print('resp:', (resp_seq, resp_op, resp_len, resp_off))
+
                 if resp_off != offset or resp_len != data_len:
                     print('Invalid resp')
                     continue
                 break
             except socket.timeout:
+                print('timeout')
                 # For such packets we don't expect reply
                 if offset == 0 and data_len == 0:
                     break
-                print('timeout')
+
                 self.rexmit += 1
 
     async def send_ota_end(self, writer):
@@ -275,6 +283,7 @@ class AsyncConnector:
                 if isinstance(result, asyncio.TimeoutError):
                     continue
                 elif not isinstance(result, tuple):
+                    # print(result)
                     continue
 
                 reader, writer = result
