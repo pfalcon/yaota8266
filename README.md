@@ -4,17 +4,10 @@ yaota8266
 howto
 -----
 
-generate RSA keys:
+generate RSA keys and/or display RSA modulus line for `config.h`:
 
 ```
-cd ota-client
-./gen_keys.sh
-```
-
-Display RSA modulus:
-```
-cd ota-client
-./dump_modulus.py
+./ota-client/gen_keys.sh
 ```
 
 Create `config.h` e.g.:
