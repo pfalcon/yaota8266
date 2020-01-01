@@ -203,7 +203,7 @@ done:
 }
 
 void timer_handler(void *arg) {
-    //printf("tick\n");
+    printf("tick\n");
 
     if (ota_prev_offset != -1 && system_get_time() - last_pkt_time > PKT_WAIT_MS * 1000) {
         printf("Next pkt wait timeout, restarting recv\n");
