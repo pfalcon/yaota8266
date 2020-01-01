@@ -77,10 +77,10 @@ class RsaSign:
 
 if __name__ == '__main__':
     rsa_sign = RsaSign()
-    print(rsa_sign.dump_modulus())
+    rsa_sign.dump_modulus()
 
     print('\nprivateExponent:')
-    print(rsa_sign.dump_exponent())
+    rsa_sign.dump_exponent()
 
     to_sign = b'foob\0'
     print(f'\nsigned {to_sign!r}:')
