@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 
 def load_key():
@@ -12,15 +14,15 @@ def load_key():
         elif l.startswith("    "):
             comps[last_comp] = comps.get(last_comp, "") + l.lstrip()
 
-    #print(comps)
+    # print(comps)
     return comps
 
 
 def dump_modulus(comps):
     print('Copy&paste this RSA modulus line into your config.h:')
-    print('-'*100)
+    print('-' * 100)
     print('#define MODULUS "%s"' % comps["modulus"][2:].replace(":", "\\x"))
-    print('-'*100)
+    print('-' * 100)
 
 
 def dump_exponent(comps):

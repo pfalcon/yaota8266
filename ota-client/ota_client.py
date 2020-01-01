@@ -1,14 +1,12 @@
-#!/usr/bin/env python3
-import sys
-import struct
-import socket
-import time
-import hashlib
+# !/usr/bin/env python3
 import argparse
+import hashlib
+import socket
+import struct
+import time
 
-#from Crypto.Cipher import AES
+# from Crypto.Cipher import AES
 import rsa_sign
-
 
 # How many firmware data bytes are included in each packet.
 # Set a conservative default. There were issues reported that
@@ -28,11 +26,11 @@ rexmit = 0
 def add_digest(pkt):
     global last_aes_key, last_seq
     aes_key = AES_KEY
-    #last_aes_key = aes_key
-    #aes = AES.new(aes_key, AES.MODE_CBC, AES_IV)
+    # last_aes_key = aes_key
+    # aes = AES.new(aes_key, AES.MODE_CBC, AES_IV)
     pad_len = (16 - len(pkt) % 16) % 16
     pkt += b"\0" * pad_len
-    #pkt = aes.encrypt(pkt)
+    # pkt = aes.encrypt(pkt)
 
     digest = hashlib.sha1(pkt).digest()
     sig = rsa_sign.sign(rsa_key, aes_key + digest)
@@ -48,8 +46,8 @@ def make_pkt(offset, data):
 
 def decode_pkt(pkt):
     global last_aes_key
-    #aes = AES.new(last_aes_key, AES.MODE_CBC, AES_IV)
-    #return aes.decrypt(pkt)
+    # aes = AES.new(last_aes_key, AES.MODE_CBC, AES_IV)
+    # return aes.decrypt(pkt)
     return pkt
 
 
@@ -58,18 +56,18 @@ def send_recv(s, offset, pkt, data_len):
 
     while True:
         try:
-            print("Sending #%d" % last_seq)
-            #print("send:", pkt)
+            print("Sending # %d" % last_seq)
+            # print("send:", pkt)
             s.send(pkt)
             resp = s.recv(1024)
-            #print("resp:", resp, len(resp))
+            # print("resp:", resp, len(resp))
             resp_seq = struct.unpack("<I", resp[:4])[0]
             if resp_seq != last_seq:
                 print("Unexpected seq no: %d (expected: %d)" % (resp_seq, last_seq))
                 continue
             resp = resp[4:]
             resp = decode_pkt(resp)
-            #print("decoded resp:", resp)
+            # print("decoded resp:", resp)
             resp_op, resp_len, resp_off = struct.unpack("<HHI", resp[:8])
             print("resp:", (resp_seq, resp_op, resp_len, resp_off))
             if resp_off != offset or resp_len != data_len:
@@ -83,12 +81,14 @@ def send_recv(s, offset, pkt, data_len):
             print("timeout")
             rexmit += 1
 
+
 def send_ota_end(s):
     # Repeat few times to minimize chance of being lost
     for i in range(3):
         pkt = make_pkt(0, b"")
         s.send(pkt)
         time.sleep(0.1)
+
 
 def live_ota():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -168,7 +168,7 @@ def canned_ota(fname):
 
     with open(fname, "rb") as f_in:
         # Skip signature
-        sig = f_in.read(10)
+        f_in.read(10)
         while True:
             data = f_in.read(2)
             sz = struct.unpack("<H", data)[0]
