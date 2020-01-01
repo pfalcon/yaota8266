@@ -16,4 +16,4 @@ else
 fi
 
 # Print the RSA modulus line for copy&paste into config.h:
-python -c "import rsa_sign; rsa_sign.dump_modulus(rsa_sign.load_key())"
+python3 -c "import rsa_sign; rsa_sign.dump_modulus(rsa_sign.load_key())"
