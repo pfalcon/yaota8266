@@ -7,6 +7,7 @@ import socket
 import struct
 import sys
 import time
+from pathlib import Path
 
 # from Crypto.Cipher import AES
 from rsa_sign import RsaSign
@@ -23,10 +24,10 @@ AES_KEY = b'\x01' * 16
 SIGNED_FILE_EXTENSION = '.ota'
 
 OTA_PORT = 8266
-SOCKET_TIMEOUT = 10
+SOCKET_TIMEOUT = 0.3
 
-DNS_SERVER = '8.8.8.8'  # Google DNS Server ot get own IP
-ENCODING = 'utf-8'
+# The first OTA package will be send this this broadcast address:
+BROADCAST_ADDRESS = '255.255.255.255'
 
 
 def signed_filename(fname):
@@ -68,12 +69,22 @@ def validate_ota(fname):
 class OtaClient:
     def __init__(self, fname=None):
         self.fname = fname
+        self.total_size = None
         self.rsa_sign = RsaSign()
 
         self.rsa_key = None
         self.last_aes_key = None
         self.last_seq = 0
         self.rexmit = 0
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.sock.settimeout(SOCKET_TIMEOUT)
+
+        self.device_ip = BROADCAST_ADDRESS  # send first packet as broadcast
+        self.next_update = 0
+        self.start_time = 0
 
     def add_digest(self, pkt):
         aes_key = AES_KEY
@@ -98,18 +109,39 @@ class OtaClient:
         # return aes.decrypt(pkt)
         return pkt
 
-    async def send_recv(self, reader, writer, offset, pkt, data_len):
+    def send_recv(self, offset, pkt, data_len):
+
+        if self.last_seq == 1 and self.device_ip == BROADCAST_ADDRESS:
+            print('wait for response...', end='')
+        elif time.time() > self.next_update:
+            duration = time.time() - self.start_time
+            sended = offset + data_len
+            throughput = sended / duration / 1024
+
+            percent = 100 / self.total_size * sended
+
+            print(f'{percent:.1f}% Sending #{self.last_seq} ({throughput:.1f} KBytes/s)')
+            self.next_update = time.time() + 1
+
         while True:
             try:
-                print('Sending # %d' % self.last_seq)
+                self.sock.sendto(pkt, (self.device_ip, OTA_PORT))
+                try:
+                    resp, server = self.sock.recvfrom(1024)
+                except socket.timeout:
+                    if self.last_seq == 1:
+                        # no device has responded, yet
+                        if time.time() > self.next_update:
+                            print('.', end='', flush=True)
+                            self.next_update = time.time() + 1
+                        continue
+                    else:
+                        raise
 
-                print('send:', pkt)
-                writer.write(pkt)
-                await writer.drain()
+                if self.start_time == 0:
+                    self.start_time = time.time()
 
-                print('wait for response...', end='')
-                resp = await reader.read(1024)
-                print('resp:', resp, len(resp))
+                # print('resp:', resp, len(resp))
 
                 resp_seq = struct.unpack('<I', resp[:4])[0]
                 if resp_seq != self.last_seq:
@@ -118,44 +150,62 @@ class OtaClient:
 
                 resp = resp[4:]
                 resp = self.decode_pkt(resp)
-                print('decoded resp:', resp)
+                # print('decoded resp:', resp)
 
                 resp_op, resp_len, resp_off = struct.unpack('<HHI', resp[:8])
-                print('resp:', (resp_seq, resp_op, resp_len, resp_off))
+                # print('resp:', (resp_seq, resp_op, resp_len, resp_off))
 
                 if resp_off != offset or resp_len != data_len:
                     print('Invalid resp')
                     continue
+
+                if self.device_ip == BROADCAST_ADDRESS:
+                    # set device IP address and send all next packages to this address
+                    print('received from:', repr(server))
+                    self.device_ip = server[0]
+
                 break
             except socket.timeout:
-                print('timeout')
+                if time.time() > self.next_update:
+                    print('t', end='', flush=True)
+                    self.next_update = time.time() + 1
+
                 # For such packets we don't expect reply
                 if offset == 0 and data_len == 0:
                     break
 
                 self.rexmit += 1
 
-    async def send_ota_end(self, writer):
+    def send_ota_end(self):
         # Repeat few times to minimize chance of being lost
+        print('Send OTA end', end='', flush=True)
         for i in range(3):
             pkt = self.make_pkt(0, b'')
-            writer.write(pkt)
-            await writer.drain()
+            self.sock.sendto(pkt, (self.device_ip, OTA_PORT))
             time.sleep(0.1)
+            print('.', end='', flush=True)
 
-    async def live_ota(self, reader, writer):
+    def live_ota(self):
+        file_path = Path(self.fname)
+        self.total_size = file_path.stat().st_size
+
         offset = 0
-        with open(self.fname, 'rb') as f:
+        with file_path.open('rb') as f:
             while True:
                 chunk = f.read(BLK_SIZE)
                 if not chunk:
                     break
                 pkt = self.make_pkt(offset, chunk)
-                await self.send_recv(reader, writer, offset, pkt, len(chunk))
+                self.send_recv(offset, pkt, len(chunk))
                 offset += len(chunk)
 
-        await self.send_ota_end(writer)
+        self.send_ota_end()
         print('Done, rexmits: %d' % self.rexmit)
+
+        duration = time.time() - self.start_time
+        throughput = self.total_size / duration / 1024
+
+        print(f'Send {self.total_size} Bytes in {duration:.1f}sec ({throughput:.1f} KBytes/s)')
 
     def sign(self, fname):
         print(f'Sign firmware file {fname}...')
@@ -189,8 +239,11 @@ class OtaClient:
 
         print(f'Signed file created: {out_filename}')
 
-    async def canned_ota(self, reader, writer):
-        with open(self.fname, 'rb') as f_in:
+    def canned_ota(self):
+        file_path = Path(self.fname)
+        self.total_size = file_path.stat().st_size
+
+        with file_path.open('rb') as f_in:
             # Skip signature
             f_in.read(10)
             while True:
@@ -200,115 +253,14 @@ class OtaClient:
                     break
                 data = f_in.read(sz)
                 last_seq, op, data_len, offset = struct.unpack('<IHHI', data[:12])
-                await self.send_recv(reader, writer, offset, data, data_len)
+                self.send_recv(offset, data, data_len)
 
         print('Done, rexmits: %d' % self.rexmit)
 
+        duration = time.time() - self.start_time
+        throughput = self.total_size / duration / 1024
 
-def get_ip_address():
-    """
-    :return: IP address of the host running this script.
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(SOCKET_TIMEOUT)
-    s.connect((DNS_SERVER, 80))
-    ip = s.getsockname()[0]
-    s.close()
-    return ip
-
-
-class CommunicationError(RuntimeError):
-    pass
-
-
-def ip_range_iterator(own_ip, exclude_own):
-    ip_prefix, own_no = own_ip.rsplit('.', 1)
-    print(f'Scan:.....: {ip_prefix}.X')
-
-    own_no = int(own_no)
-
-    for no in range(1, 255):
-        if exclude_own and no == own_no:
-            continue
-
-        yield f'{ip_prefix}.{no}'
-
-
-class OtaStreamWriter(asyncio.StreamWriter):
-    encoding = 'utf-8'
-
-    async def write_text_line(self, text):
-        self.write(b'%s\n' % text.encode('utf-8'))
-        await self.drain()
-
-    async def sendall(self, data):
-        self.write(data)
-        await self.drain()
-
-
-async def open_connection(host=None, port=None):
-    """A wrapper for create_connection() returning a (reader, writer) pair.
-
-    Similar as asyncio.open_connection() but we use own OtaStreamWriter()
-    """
-    loop = asyncio.get_event_loop()
-    reader = asyncio.StreamReader(limit=2 ** 16, loop=loop)
-    protocol = asyncio.StreamReaderProtocol(reader, loop=loop)
-    transport, _ = await loop.create_connection(lambda: protocol, host, port)
-    writer = OtaStreamWriter(transport, protocol, reader, loop)
-    return reader, writer
-
-
-class AsyncConnector:
-    """
-    Scan the own IP range and start callback if receiver found.
-    """
-    def __init__(self, callback):
-        self.callback = callback
-
-    async def port_scan_and_serve(self, port):
-        own_ip = get_ip_address()
-        print(f'Own IP....: {own_ip}')
-        ips = tuple(ip_range_iterator(own_ip, exclude_own=True))
-
-        print(f'Wait for receivers on port: {port}', end=' ', flush=True)
-        clients = []
-        while True:
-            connections = [
-                asyncio.wait_for(open_connection(ip, port), timeout=0.5)
-                for ip in ips
-            ]
-            results = await asyncio.gather(*connections, return_exceptions=True)
-            for ip, result in zip(ips, results):
-                if isinstance(result, asyncio.TimeoutError):
-                    continue
-                elif not isinstance(result, tuple):
-                    # print(result)
-                    continue
-
-                reader, writer = result
-
-                print('Connected to:', ip)
-                peername = writer.get_extra_info('peername')
-                print(f'Connect to {peername[0]}:{peername[1]}')
-                try:
-                    await self.callback(reader, writer)
-                except ConnectionResetError as e:
-                    print(e)
-                    continue
-                clients.append(ip)
-
-            if clients:
-                return clients
-
-            print('.', end='', flush=True)
-            time.sleep(2)
-
-    def scan(self, port):
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(
-            self.port_scan_and_serve(port=port)
-        )
+        print(f'Send {self.total_size} Bytes in {duration:.1f}sec ({throughput:.1f} KBytes/s)')
 
 
 def cli():
@@ -326,16 +278,12 @@ def cli():
         # Do the OTA update for a device
         validate_ota(args.file)
 
-        AsyncConnector(
-            callback=OtaClient(args.file).live_ota
-        ).scan(port=OTA_PORT)
+        OtaClient(args.file).live_ota()
 
     elif args.command == 'ota':
         validate_ota(args.file)
 
-        AsyncConnector(
-            callback=OtaClient(args.file).canned_ota
-        ).scan(port=OTA_PORT)
+        OtaClient(args.file).canned_ota()
 
     else:
         cmd_parser.error('Unknown command')
