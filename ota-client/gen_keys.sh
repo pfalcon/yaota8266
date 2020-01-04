@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd /mpy/yaota8266/ota-client/
-
 if [[ -f "priv.key" ]]; then
     echo -e "\nKeys already created, ok.\n"
 else
@@ -14,6 +12,3 @@ else
         openssl pkey -in priv.key -text
     )
 fi
-
-# Print the RSA modulus line for copy&paste into config.h:
-python3 print_rsa_modulus.py

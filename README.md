@@ -4,10 +4,20 @@ yaota8266
 howto
 -----
 
+```bash
+.../yaota8266$ make
+make targets:
+  help              This help page
+  print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
+  rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
+  build             Build boot8266 and ota-server and combine it to: "yaota8266.bin"
+  clean             clean builded files
+```
+
 generate RSA keys and/or display RSA modulus line for `config.h`:
 
 ```
-./ota-client/gen_keys.sh
+.../yaota8266$ make rsa-keys
 ```
 
 Create `config.h` e.g.:
@@ -16,7 +26,11 @@ cp config.h.example config.h
 ```
 copy&paste the RSA modulus in your `config.h`
 
-Compile your `yaota8266.bin` just by calling `make`
+Compile your `yaota8266.bin`:
+
+```
+.../yaota8266$ make build
+```
 
 
 background information
