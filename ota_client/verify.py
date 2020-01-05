@@ -16,7 +16,7 @@ YAOTA8266_FILENAME = 'yaota8266.bin'  # .../yaota8266/yaota8266.bin
 CONFIG_FILENAME = 'config.h'  # .../yaota8266/config.h
 
 
-def verify_setup():
+def verify_setup(skip_bin=False):
     exit_code = 0
 
     try:
@@ -46,6 +46,10 @@ def verify_setup():
                     exit_code += 1
                 else:
                     print(f'{CONFIG_FILENAME} check, ok.')
+
+    if skip_bin:
+        # Don't check existing yaota8266.bin
+        sys.exit(exit_code)
 
     # Check yaota8266.bin
 

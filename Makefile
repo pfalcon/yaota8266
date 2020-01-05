@@ -16,21 +16,7 @@ verify:  ## Check RSA key, config.h and compiled "yaota8266.bin"
 	python3 cli.py verify
 
 assert-yaota8266-setup:
-	@if [ -f config.h ] ; \
-	then \
-		echo -n "\nconfig.h exists, ok.\n\n" ; \
-	else \
-		echo -n "\nERROR: Please create 'config.h' first!\n\n" ; \
-		exit 1 ; \
-	fi
-
-	@if [ -f ota_client/priv.key ] ; \
-	then \
-		echo -n "\nota_client/priv.key exists, ok.\n\n" ; \
-	else \
-		echo -n "\nERROR: RSA priv.key not found! Please call 'make yaota8266-rsa-keys' first!\n\n" ; \
-		exit 1 ; \
-	fi
+	python3 cli.py verify --skip_bin
 
 build: assert-yaota8266-setup ## Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
 	$(MAKE) -C boot8266

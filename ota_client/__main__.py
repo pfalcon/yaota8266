@@ -40,7 +40,7 @@ def canned_ota(args):
 
 def verify(args):
     """Check RSA key, config.h and compiled 'yaota8266.bin'"""
-    verify_setup()
+    verify_setup(skip_bin=args.skip_bin)
 
 
 def cli():
@@ -89,6 +89,7 @@ def cli():
     parser_verify = subparsers.add_parser(
         'verify', help=verify.__doc__
     )
+    parser_verify.add_argument('--skip_bin', action='store_true', help='skip existing yaota8266.bin check')
     parser_verify.set_defaults(func=verify)
 
     ##############################################################################################
