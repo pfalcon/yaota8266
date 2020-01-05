@@ -10,8 +10,18 @@ RSA_PUBLIC_KEY = 'pub.key'
 BASE_PATH = Path(__file__).parent
 
 
-def get_rsa_priv_path():
-    return Path(BASE_PATH, RSA_PRIVATE_KEY)
+class RsaPrivKeyNotFoundError(FileNotFoundError):
+    """
+    The RSA private key file 'priv.key' doesn't exists, yet.
+    """
+    pass
+
+
+def get_rsa_priv_path(must_exists=False):
+    rsa_priv_path = Path(BASE_PATH, RSA_PRIVATE_KEY)
+    if must_exists and not rsa_priv_path.is_file():
+        raise RsaPrivKeyNotFoundError(f'RSA key file not found here {rsa_priv_path}')
+    return rsa_priv_path
 
 
 def get_rsa_pub_path():

@@ -6,21 +6,12 @@ from binascii import unhexlify
 from ota_client.gen_keys import get_rsa_priv_path
 
 
-class RsaPrivKeyNotFoundError(FileNotFoundError):
-    """
-    The RSA private key file 'priv.key' doesn't exists, yet.
-    """
-    pass
-
-
 class RsaSign:
     def __init__(self):
         self.comps = self.load_key()
 
     def load_key(self):
-        rsa_priv_path = get_rsa_priv_path()
-        if rsa_priv_path.is_file():
-            raise RsaPrivKeyNotFoundError('RSA key file not found in %s' % rsa_priv_path.parent)
+        rsa_priv_path = get_rsa_priv_path(must_exists=True)
 
         output = subprocess.check_output(
             ['openssl', 'pkey', '-in', rsa_priv_path.name, '-text'],

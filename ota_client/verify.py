@@ -8,7 +8,8 @@ import hashlib
 import sys
 from pathlib import Path
 
-from ota_client.rsa_sign import RsaPrivKeyNotFoundError, RsaSign
+from ota_client.gen_keys import RsaPrivKeyNotFoundError
+from ota_client.rsa_sign import RsaSign
 
 BASE_PATH = Path(__file__).parent.parent  # .../yaota8266/
 
@@ -61,22 +62,24 @@ def verify_setup(skip_bin=False):
         exit_code += 1
     else:
         print(f'{YAOTA8266_FILENAME} exists, ok.')
-        # Check if same RSA modulus line was used
-        modulus = rsa_sign.comps['modulus']
-        modulus_bin = bytes(modulus[2:].replace(':', '\\x'), encoding='ASCII')
-        print(modulus_bin)
-
-        with yaota8266_bin_path.open('rb') as f:
-            bin = f.read()
-        bin_sha256 = hashlib.sha256(bin)
-        print(f'{YAOTA8266_FILENAME} SHA256: {bin_sha256.hexdigest()}')
-        if modulus_bin in bin:
-            print(f'{YAOTA8266_FILENAME} was created with the current RSA priv.key, ok.')
+        if rsa_sign is None:
+            print(f'Can not check {YAOTA8266_FILENAME} because RSA keys not exists.')
         else:
-            print(
-                f'\n *** ERROR: {YAOTA8266_FILENAME} seems to compiled with a other RSA priv.key!'
-                f' Please recompile.',
-                file=sys.stderr)
-            exit_code += 1
+            # Check if same RSA modulus line was used
+            modulus = rsa_sign.comps['modulus']
+            modulus_bin = bytes(modulus[2:].replace(':', '\\x'), encoding='ASCII')
+            print(modulus_bin)
+
+            with yaota8266_bin_path.open('rb') as f:
+                bin = f.read()
+            bin_sha256 = hashlib.sha256(bin)
+            print(f'{YAOTA8266_FILENAME} SHA256: {bin_sha256.hexdigest()}')
+            if modulus_bin in bin:
+                print(f'{YAOTA8266_FILENAME} was created with the current RSA priv.key, ok.')
+            else:
+                print(
+                    f'\n *** ERROR: {YAOTA8266_FILENAME} seems to compiled with a other RSA priv.key!'
+                    f' Please recompile.', file=sys.stderr)
+                exit_code += 1
 
     sys.exit(exit_code)
