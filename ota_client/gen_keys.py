@@ -10,6 +10,14 @@ RSA_PUBLIC_KEY = 'pub.key'
 BASE_PATH = Path(__file__).parent
 
 
+def get_rsa_priv_path():
+    return Path(BASE_PATH, RSA_PRIVATE_KEY)
+
+
+def get_rsa_pub_path():
+    return Path(BASE_PATH, RSA_PUBLIC_KEY)
+
+
 def verbose_subprocess_call(*args):
     print(' '.join(args))
     subprocess.check_call(
@@ -20,7 +28,7 @@ def verbose_subprocess_call(*args):
 
 
 def generate_rsa_keys():
-    rsa_priv_path = Path(BASE_PATH, RSA_PRIVATE_KEY)
+    rsa_priv_path = get_rsa_priv_path()
     if rsa_priv_path.is_file():
         print(f'\nKeys already created, here: {rsa_priv_path}, ok.\n')
         return

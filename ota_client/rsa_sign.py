@@ -2,9 +2,9 @@
 
 import subprocess
 from binascii import unhexlify
-from pathlib import Path
 
-RSA_PRIV_KEY = 'priv.key'
+from ota_client.gen_keys import get_rsa_priv_path
+
 
 class RsaPrivKeyNotFoundError(FileNotFoundError):
     """
@@ -12,19 +12,20 @@ class RsaPrivKeyNotFoundError(FileNotFoundError):
     """
     pass
 
+
 class RsaSign:
     def __init__(self):
         self.comps = self.load_key()
 
     def load_key(self):
-        cwd = Path(__file__).parent.resolve()
-        if not Path(cwd, RSA_PRIV_KEY).is_file():
-            raise RsaPrivKeyNotFoundError('RSA key file not found in %s' % cwd)
+        rsa_priv_path = get_rsa_priv_path()
+        if rsa_priv_path.is_file():
+            raise RsaPrivKeyNotFoundError('RSA key file not found in %s' % rsa_priv_path.parent)
 
         output = subprocess.check_output(
-            ['openssl', 'pkey', '-in', RSA_PRIV_KEY, '-text'],
+            ['openssl', 'pkey', '-in', rsa_priv_path.name, '-text'],
             universal_newlines=True,
-            cwd=str(cwd)  # load 'priv.key' in .../yaota8266/ota_client/
+            cwd=str(rsa_priv_path.parent)  # load 'priv.key' in .../yaota8266/ota_client/
         )
         # print(output)
 
