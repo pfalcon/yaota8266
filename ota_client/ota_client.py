@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import asyncio
 import hashlib
 import socket
 import struct
@@ -10,7 +9,7 @@ import time
 from pathlib import Path
 
 # from Crypto.Cipher import AES
-from rsa_sign import RsaSign
+from .rsa_sign import RsaSign
 
 # How many firmware data bytes are included in each packet.
 # Set a conservative default. There were issues reported that

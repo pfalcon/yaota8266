@@ -6,6 +6,7 @@ from pathlib import Path
 
 RSA_PRIV_KEY = 'priv.key'
 
+
 class RsaSign:
     def __init__(self):
         self.comps = self.load_key()
@@ -18,7 +19,7 @@ class RsaSign:
         output = subprocess.check_output(
             ['openssl', 'pkey', '-in', RSA_PRIV_KEY, '-text'],
             universal_newlines=True,
-            cwd=str(cwd)
+            cwd=str(cwd)  # load 'priv.key' in .../yaota8266/ota_client/
         )
         # print(output)
 
@@ -37,17 +38,14 @@ class RsaSign:
 
         return comps
 
-
     def dump_modulus(self):
         print('Copy&paste this RSA modulus line into your config.h:')
         print('-' * 100)
         print('#define MODULUS %s' % self.comps['modulus'][2:].replace(':', '\\x'))
         print('-' * 100)
 
-
     def dump_exponent(self):
         print('pe = %s' % self.comps['privateExponent'][2:].replace(':', '\\x'))
-
 
     def sign(self, to_sign):
         mod = self.comps['modulus']
