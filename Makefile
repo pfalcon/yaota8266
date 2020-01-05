@@ -15,7 +15,24 @@ rsa-keys:  ## Generate RSA keys and print the RSA modulus line for copy&paste in
 verify:  ## Check RSA key, config.h and compiled "yaota8266.bin"
 	python3 verify.py
 
-build:  ## Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
+assert-yaota8266-setup:
+	@if [ -f config.h ] ; \
+	then \
+		echo -n "\nconfig.h exists, ok.\n\n" ; \
+	else \
+		echo -n "\nERROR: Please create 'config.h' first!\n\n" ; \
+		exit 1 ; \
+	fi
+
+	@if [ -f ota_client/priv.key ] ; \
+	then \
+		echo -n "\nota_client/priv.key exists, ok.\n\n" ; \
+	else \
+		echo -n "\nERROR: RSA priv.key not found! Please call 'make yaota8266-rsa-keys' first!\n\n" ; \
+		exit 1 ; \
+	fi
+
+build: assert-yaota8266-setup ## Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
 	$(MAKE) -C boot8266
 	$(MAKE) -C ota_server
 	python merge.py -o yaota8266.bin boot8266/boot8266-0x00000.bin \
