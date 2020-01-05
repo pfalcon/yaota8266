@@ -10,13 +10,13 @@ from pathlib import Path
 
 from ota_client.rsa_sign import RsaPrivKeyNotFoundError, RsaSign
 
-BASE_PATH = Path(__file__).parent
+BASE_PATH = Path(__file__).parent.parent  # .../yaota8266/
 
-YAOTA8266_FILENAME = 'yaota8266.bin'
-CONFIG_FILENAME = 'config.h'
+YAOTA8266_FILENAME = 'yaota8266.bin'  # .../yaota8266/yaota8266.bin
+CONFIG_FILENAME = 'config.h'  # .../yaota8266/config.h
 
 
-def verify():
+def verify_setup():
     exit_code = 0
 
     try:
@@ -60,7 +60,7 @@ def verify():
         # Check if same RSA modulus line was used
         modulus = rsa_sign.comps['modulus']
         modulus_bin = bytes(modulus[2:].replace(':', '\\x'), encoding='ASCII')
-        print(repr(modulus_bin))
+        print(modulus_bin)
 
         with yaota8266_bin_path.open('rb') as f:
             bin = f.read()
@@ -76,7 +76,3 @@ def verify():
             exit_code += 1
 
     sys.exit(exit_code)
-
-
-if __name__ == '__main__':
-    verify()

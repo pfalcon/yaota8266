@@ -4,17 +4,6 @@ yaota8266
 howto
 -----
 
-```bash
-.../yaota8266$ make
-make targets:
-  help              This help page
-  print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
-  rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
-  verify            Check RSA key, config.h and compiled "yaota8266.bin"
-  build             Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
-  clean             clean builded files
-```
-
 generate RSA keys and/or display RSA modulus line for `config.h`:
 
 ```
@@ -32,6 +21,43 @@ Compile your `yaota8266.bin`:
 ```
 .../yaota8266$ make build
 ```
+
+
+Existing `make` targets:
+
+```bash
+.../yaota8266$ make
+make targets:
+  help              This help page
+  print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
+  rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
+  verify            Check RSA key, config.h and compiled "yaota8266.bin"
+  build             Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
+  clean             clean builded files
+```
+
+
+OTA-Client cli, e.g.:
+
+```bash
+.../yaota8266$ ./cli.py -h
+usage: cli.py [-h] {print_rsa_modulus,sign,ota,canned_ota,verify} ...
+
+yaota8266 (yet another esp8266 OTA) client
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+subcommands:
+  {print_rsa_modulus,sign,ota,canned_ota,verify}
+    print_rsa_modulus   Print the RSA modulus line for copy&paste into
+                        config.h
+    sign                Sign firmware file for OTA
+    ota                 Do the OTA update for a device
+    canned_ota          Do the 'canned' OTA update for a device
+    verify              Check RSA key, config.h and compiled 'yaota8266.bin'
+```
+
 
 
 background information

@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 # from Crypto.Cipher import AES
-from .rsa_sign import RsaSign
+from ota_client.rsa_sign import RsaSign
 
 # How many firmware data bytes are included in each packet.
 # Set a conservative default. There were issues reported that
@@ -262,31 +262,4 @@ class OtaClient:
         print(f'Send {self.total_size} Bytes in {duration:.1f}sec ({throughput:.1f} KBytes/s)')
 
 
-def cli():
-    cmd_parser = argparse.ArgumentParser(description='yaota8266 (yet another esp8266 OTA) client')
-    cmd_parser.add_argument('command', help='ota/sign/live-ota')
-    cmd_parser.add_argument('file', help='file to process')
-    args = cmd_parser.parse_args()
 
-    if args.command == 'sign':
-        # Sign firmware file for OTA
-        OtaClient().sign(args.file)
-        validate_ota(signed_filename(args.file))
-
-    elif args.command == 'live-ota':
-        # Do the OTA update for a device
-        validate_ota(args.file)
-
-        OtaClient(args.file).live_ota()
-
-    elif args.command == 'ota':
-        validate_ota(args.file)
-
-        OtaClient(args.file).canned_ota()
-
-    else:
-        cmd_parser.error('Unknown command')
-
-
-if __name__ == '__main__':
-    cli()

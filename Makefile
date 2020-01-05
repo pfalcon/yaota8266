@@ -6,14 +6,14 @@ help:  ## This help page
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-17s %s\n", $$1, $$2}'
 
 print-rsa-modulus: ## Print the RSA modulus line for copy&paste into config.h
-	python3 ota_client/print_rsa_modulus.py
+	python3 cli.py print_rsa_modulus
 
 rsa-keys:  ## Generate RSA keys and print the RSA modulus line for copy&paste into config.h
 	./ota_client/gen_keys.sh
 	$(MAKE) print-rsa-modulus
 
 verify:  ## Check RSA key, config.h and compiled "yaota8266.bin"
-	python3 verify.py
+	python3 cli.py verify
 
 assert-yaota8266-setup:
 	@if [ -f config.h ] ; \
