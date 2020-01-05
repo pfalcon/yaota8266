@@ -5,5 +5,6 @@
 import machine
 
 if __name__ == '__main__':
+    print('Force yaota8266 OTA')
     machine.RTC().memory('yaotaota')
     machine.reset()
