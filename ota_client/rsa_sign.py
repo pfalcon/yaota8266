@@ -36,7 +36,7 @@ class RsaSign:
         return comps
 
     def get_config_define_line(self):
-        return '#define MODULUS %s' % self.comps['modulus'][2:].replace(':', '\\x')
+        return '#define MODULUS "%s"' % self.comps['modulus'][2:].replace(':', '\\x')
 
     def dump_modulus(self):
         print('Copy&paste this RSA modulus line into your config.h:')
