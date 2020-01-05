@@ -10,7 +10,8 @@ make targets:
   help              This help page
   print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
   rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
-  build             Build boot8266 and ota-server and combine it to: "yaota8266.bin"
+  verify            Check RSA key, config.h and compiled "yaota8266.bin"
+  build             Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
   clean             clean builded files
 ```
 

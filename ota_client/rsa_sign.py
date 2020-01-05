@@ -6,6 +6,11 @@ from pathlib import Path
 
 RSA_PRIV_KEY = 'priv.key'
 
+class RsaPrivKeyNotFoundError(FileNotFoundError):
+    """
+    The RSA private key file 'priv.key' doesn't exists, yet.
+    """
+    pass
 
 class RsaSign:
     def __init__(self):
@@ -14,7 +19,7 @@ class RsaSign:
     def load_key(self):
         cwd = Path(__file__).parent.resolve()
         if not Path(cwd, RSA_PRIV_KEY).is_file():
-            raise FileNotFoundError('RSA key file not found in %s' % cwd)
+            raise RsaPrivKeyNotFoundError('RSA key file not found in %s' % cwd)
 
         output = subprocess.check_output(
             ['openssl', 'pkey', '-in', RSA_PRIV_KEY, '-text'],
@@ -38,10 +43,13 @@ class RsaSign:
 
         return comps
 
+    def get_config_define_line(self):
+        return '#define MODULUS %s' % self.comps['modulus'][2:].replace(':', '\\x')
+
     def dump_modulus(self):
         print('Copy&paste this RSA modulus line into your config.h:')
         print('-' * 100)
-        print('#define MODULUS %s' % self.comps['modulus'][2:].replace(':', '\\x'))
+        print(self.get_config_define_line())
         print('-' * 100)
 
     def dump_exponent(self):

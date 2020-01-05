@@ -12,12 +12,15 @@ rsa-keys:  ## Generate RSA keys and print the RSA modulus line for copy&paste in
 	./ota_client/gen_keys.sh
 	$(MAKE) print-rsa-modulus
 
-build:  ## Build boot8266 and ota-server and combine it to: "yaota8266.bin"
+verify:  ## Check RSA key, config.h and compiled "yaota8266.bin"
+	python3 verify.py
+
+build:  ## Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
 	$(MAKE) -C boot8266
 	$(MAKE) -C ota_server
 	python merge.py -o yaota8266.bin boot8266/boot8266-0x00000.bin \
 	    ota_server/ota.elf-0x00000.bin ota_server/ota.elf-0x09000.bin
-
+	$(MAKE) verify
 
 clean:  ## clean builded files
 	$(MAKE) -C boot8266 clean
