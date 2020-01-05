@@ -6,6 +6,7 @@
 
 import hashlib
 import sys
+from binascii import unhexlify
 from pathlib import Path
 
 from ota_client.gen_keys import RsaPrivKeyNotFoundError
@@ -66,20 +67,23 @@ def verify_setup(skip_bin=False):
             print(f'Can not check {YAOTA8266_FILENAME} because RSA keys not exists.')
         else:
             # Check if same RSA modulus line was used
-            modulus = rsa_sign.comps['modulus']
-            modulus_bin = bytes(modulus[2:].replace(':', '\\x'), encoding='ASCII')
-            print(modulus_bin)
-
             with yaota8266_bin_path.open('rb') as f:
                 bin = f.read()
+
             bin_sha256 = hashlib.sha256(bin)
             print(f'{YAOTA8266_FILENAME} SHA256: {bin_sha256.hexdigest()}')
-            if modulus_bin in bin:
-                print(f'{YAOTA8266_FILENAME} was created with the current RSA priv.key, ok.')
-            else:
+
+            modulus = rsa_sign.comps['modulus']
+            modulus_bin = b''.join([unhexlify(value) for value in modulus[3:].split(':')])
+
+            pos = bin.find(modulus_bin)
+            if pos == -1:
                 print(
                     f'\n *** ERROR: {YAOTA8266_FILENAME} seems to compiled with a other RSA priv.key!'
                     f' Please recompile.', file=sys.stderr)
                 exit_code += 1
+            else:
+                print(f'RSA modulus found at {hex(pos)}')
+                print(f'{YAOTA8266_FILENAME} was created with the current RSA priv.key, ok.')
 
     sys.exit(exit_code)
