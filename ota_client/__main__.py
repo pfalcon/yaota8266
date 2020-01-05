@@ -7,9 +7,15 @@
 
 import argparse
 
+from ota_client import gen_keys
 from ota_client.ota_client import OtaClient, signed_filename, validate_ota
 from ota_client.rsa_sign import RsaSign
 from ota_client.verify import verify_setup
+
+
+def generate_rsa_keys(args):
+    """Generate RSA keys in '.../yaota8266/ota_client/' if not already exists"""
+    gen_keys.generate_rsa_keys()
 
 
 def print_rsa_modulus(args):
@@ -47,6 +53,14 @@ def cli():
     parser = argparse.ArgumentParser(description='yaota8266 (yet another esp8266 OTA) client')
 
     subparsers = parser.add_subparsers(title='subcommands')
+
+    ##############################################################################################
+    # generate_rsa_keys
+
+    parser_generate_rsa_keys = subparsers.add_parser(
+        'generate_rsa_keys', help=generate_rsa_keys.__doc__
+    )
+    parser_generate_rsa_keys.set_defaults(func=generate_rsa_keys)
 
     ##############################################################################################
     # print_rsa_modulus
@@ -89,7 +103,10 @@ def cli():
     parser_verify = subparsers.add_parser(
         'verify', help=verify.__doc__
     )
-    parser_verify.add_argument('--skip_bin', action='store_true', help='skip existing yaota8266.bin check')
+    parser_verify.add_argument(
+        '--skip_bin',
+        action='store_true',
+        help='skip existing yaota8266.bin check')
     parser_verify.set_defaults(func=verify)
 
     ##############################################################################################

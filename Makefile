@@ -9,7 +9,7 @@ print-rsa-modulus: ## Print the RSA modulus line for copy&paste into config.h
 	python3 cli.py print_rsa_modulus
 
 rsa-keys:  ## Generate RSA keys and print the RSA modulus line for copy&paste into config.h
-	./ota_client/gen_keys.sh
+	python3 cli.py generate_rsa_keys
 	$(MAKE) print-rsa-modulus
 
 verify:  ## Check RSA key, config.h and compiled "yaota8266.bin"

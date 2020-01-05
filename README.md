@@ -41,7 +41,9 @@ OTA-Client cli, e.g.:
 
 ```bash
 .../yaota8266$ ./cli.py -h
-usage: cli.py [-h] {print_rsa_modulus,sign,ota,canned_ota,verify} ...
+usage: cli.py [-h]
+              {generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+              ...
 
 yaota8266 (yet another esp8266 OTA) client
 
@@ -49,7 +51,9 @@ optional arguments:
   -h, --help            show this help message and exit
 
 subcommands:
-  {print_rsa_modulus,sign,ota,canned_ota,verify}
+  {generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+    generate_rsa_keys   Generate RSA keys in '.../yaota8266/ota_client/' if
+                        not already exists
     print_rsa_modulus   Print the RSA modulus line for copy&paste into
                         config.h
     sign                Sign firmware file for OTA
