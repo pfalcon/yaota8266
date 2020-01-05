@@ -23,6 +23,12 @@ Compile your `yaota8266.bin`:
 ```
 
 
+Existing helper files for ESP8266 device:
+
+* `helpers/force_yaota8266.py` - Set OTA magic word in RTC RAM and reset device to force start OTA Server
+* `helpers/verify_device.py` - Verify if yaota8266.bin flashed with the same RSA key on the device
+
+
 Existing `make` targets:
 
 ```bash
