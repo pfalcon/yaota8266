@@ -22,6 +22,8 @@ Compile your `yaota8266.bin`:
 .../yaota8266$ make build
 ```
 
+**Note:** You need to setup the complete toolchain. For easier usage via docker, go to: https://github.com/jedie/docker-yaota8266/ ;)
+
 
 Existing helper files for ESP8266 device:
 
