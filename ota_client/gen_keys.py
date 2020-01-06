@@ -29,6 +29,7 @@ def get_rsa_pub_path():
 
 
 def verbose_subprocess_call(*args):
+    args = [str(arg) for arg in args]
     print(' '.join(args))
     subprocess.check_call(
         args,
