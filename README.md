@@ -31,7 +31,7 @@ Existing `make` targets:
 .../yaota8266$ make
 make targets:
   help              This help page
-  update-configs    Create config.h if not exists and/or insert current RSA modulus in config.h
+  update-config     Create config.h if not exists and/or insert current RSA modulus in config.h
   print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
   rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
   verify            Check RSA key, config.h and compiled "yaota8266.bin"
