@@ -4,23 +4,17 @@ yaota8266
 howto
 -----
 
-generate RSA keys and/or display RSA modulus line for `config.h`:
-
-```
-.../yaota8266$ make rsa-keys
-```
-
-Create `config.h` e.g.:
-```
-cp config.h.example config.h
-```
-copy&paste the RSA modulus in your `config.h`
-
 Compile your `yaota8266.bin`:
 
 ```
 .../yaota8266$ make build
 ```
+
+The `build` target will do this for you:
+
+* generate RSA keys, store them in: `.../yaota8266/ota_client/priv.key` and `.../yaota8266/ota_client/pub.key`
+* Create `config.h` as a copy from `config.h.example`
+* Update `#define MODULUS "..."` with the generates RSA keys
 
 **Note:** You need to setup the complete toolchain. For easier usage via docker, go to: https://github.com/jedie/docker-yaota8266/ ;)
 
@@ -37,6 +31,7 @@ Existing `make` targets:
 .../yaota8266$ make
 make targets:
   help              This help page
+  update-configs    Create config.h if not exists and/or insert current RSA modulus in config.h
   print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
   rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
   verify            Check RSA key, config.h and compiled "yaota8266.bin"
@@ -50,7 +45,7 @@ OTA-Client cli, e.g.:
 ```bash
 .../yaota8266$ ./cli.py -h
 usage: cli.py [-h]
-              {generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+              {update_config,generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
               ...
 
 yaota8266 (yet another esp8266 OTA) client
@@ -59,7 +54,9 @@ optional arguments:
   -h, --help            show this help message and exit
 
 subcommands:
-  {generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+  {update_config,generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+    update_config       Create config.h if not exists and/or insert current
+                        RSA modulus in config.h
     generate_rsa_keys   Generate RSA keys in '.../yaota8266/ota_client/' if
                         not already exists
     print_rsa_modulus   Print the RSA modulus line for copy&paste into

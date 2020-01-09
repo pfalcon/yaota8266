@@ -12,6 +12,9 @@ from ota_client.ota_client import OtaClient, signed_filename, validate_ota
 from ota_client.rsa_sign import RsaSign
 from ota_client.verify import verify_setup
 
+def update_config(args):
+    """Create config.h if not exists and/or insert current RSA modulus in config.h"""
+    gen_keys.update_config()
 
 def generate_rsa_keys(args):
     """Generate RSA keys in '.../yaota8266/ota_client/' if not already exists"""
@@ -53,6 +56,14 @@ def cli():
     parser = argparse.ArgumentParser(description='yaota8266 (yet another esp8266 OTA) client')
 
     subparsers = parser.add_subparsers(title='subcommands')
+
+    ##############################################################################################
+    # update_config
+
+    parser_generate_rsa_keys = subparsers.add_parser(
+        'update_config', help=update_config.__doc__
+    )
+    parser_generate_rsa_keys.set_defaults(func=update_config)
 
     ##############################################################################################
     # generate_rsa_keys
