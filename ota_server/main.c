@@ -38,7 +38,8 @@ void init_done(void) {
 #if BAUD_RATE
     uart_div_modify(0, UART_CLK_FREQ / BAUD_RATE);
 #endif
-    printf("\nStarting OTA server\n");
+    printf("\n\n");
+    printf("\nStarting yaota8266 server\n");
     ota_start();
 }
 

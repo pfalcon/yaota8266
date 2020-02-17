@@ -1,6 +1,77 @@
 yaota8266
 =========
 
+howto
+-----
+
+Compile your `yaota8266.bin`:
+
+```
+.../yaota8266$ make build
+```
+
+The `build` target will do this for you:
+
+* generate RSA keys, store them in: `.../yaota8266/ota_client/priv.key` and `.../yaota8266/ota_client/pub.key`
+* Create `config.h` as a copy from `config.h.example`
+* Update `#define MODULUS "..."` with the generates RSA keys
+
+**Note:** You need to setup the complete toolchain. For easier usage via docker, go to: https://github.com/jedie/docker-yaota8266/ ;)
+
+
+Existing helper files for ESP8266 device:
+
+* `helpers/force_yaota8266.py` - Set OTA magic word in RTC RAM and reset device to force start OTA Server
+* `helpers/verify_device.py` - Verify if yaota8266.bin flashed with the same RSA key on the device
+
+
+Existing `make` targets:
+
+```bash
+.../yaota8266$ make
+make targets:
+  help              This help page
+  update-config     Create config.h if not exists and/or insert current RSA modulus in config.h
+  print-rsa-modulus Print the RSA modulus line for copy&paste into config.h
+  rsa-keys          Generate RSA keys and print the RSA modulus line for copy&paste into config.h
+  verify            Check RSA key, config.h and compiled "yaota8266.bin"
+  build             Build boot8266 and ota-server and combine it to: "yaota8266.bin" and verfiy it
+  clean             clean builded files
+```
+
+
+OTA-Client cli, e.g.:
+
+```bash
+.../yaota8266$ ./cli.py -h
+usage: cli.py [-h]
+              {update_config,generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+              ...
+
+yaota8266 (yet another esp8266 OTA) client
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+subcommands:
+  {update_config,generate_rsa_keys,print_rsa_modulus,sign,ota,canned_ota,verify}
+    update_config       Create config.h if not exists and/or insert current
+                        RSA modulus in config.h
+    generate_rsa_keys   Generate RSA keys in '.../yaota8266/ota_client/' if
+                        not already exists
+    print_rsa_modulus   Print the RSA modulus line for copy&paste into
+                        config.h
+    sign                Sign firmware file for OTA
+    ota                 Do the OTA update for a device
+    canned_ota          Do the 'canned' OTA update for a device
+    verify              Check RSA key, config.h and compiled 'yaota8266.bin'
+```
+
+
+
+background information
+----------------------
+
 yaota8266 is yet another bootloader/over-the-air (OTA) update solution
 for ESP8266 WiFi SoC. Unlike many other solutions, yaota8266 does not
 require reserving FlashROM space of 2x the size of the firmware. Instead,

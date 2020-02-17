@@ -85,6 +85,31 @@ bool check_buttons(void)
     _printf("Initial GPIO state: %x, OE: %x\n", gpio_ini, *(uint32_t*)0x60000314);
     gpio_ini &= gpio_mask;
 
+    //// check magic word
+    long length = *((long *)(RTCMEM_BASE+512+16));
+    // debug: _printf("Length: %d\n",length);
+
+    // reading of local strings seems not to work
+    // (maybe due to alignment and memory model)
+    // so just check hex
+    // yaotaota is in hex: 79616f74 616f7461
+    // due to byte order, we need to use 746f6179 61746f61
+
+    long *userrtc=(long *)(RTCMEM_BASE+512+20);
+
+    if( length >= 8 ) {
+        _printf("RTC user memory: %x %x\n",userrtc[0],userrtc[1]);
+        _printf("Comparator: %x %x\n",0x746f6179,0x61746f61);
+        if( userrtc[0] == 0x746f6179 && userrtc[1] == 0x61746f61 ) {
+            _printf("Detected magic word in RTC memory, going to OTA mode.\n");
+            *((long *)userrtc) = 0x746f617a; // change to zota, so it's not executed again
+                                      // but allows trace later
+            return true;
+        }
+        _printf("Magic word in RTC memory not detected, continuing normally.\n");
+    }
+
+    //// check GPIO
     bool ota = false;
     int ms_delay = gpio_wait_ms;
     uint32_t ticks = ticks_cpu();

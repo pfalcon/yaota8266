@@ -1,4 +1,4 @@
-[submodule "ota-server/lib/axtls"]
-	path = ota-server/lib/axtls
+[submodule "ota_server/lib/axtls"]
+	path = ota_server/lib/axtls
 	url = https://github.com/pfalcon/axtls
 	branch = micropython
